@@ -9,7 +9,7 @@ fn read_file(edit_file_path: &str) -> io::Result<Vec<String>> {
 
     let lines = reader.lines().collect::<Result<_, _>>()?;
 
-    return Ok(lines)
+    Ok(lines)
 }
 
 fn input(prompt: &str) -> String {
@@ -19,6 +19,16 @@ fn input(prompt: &str) -> String {
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("Failed to read line");
     input.trim().to_string()
+}
+
+fn write_to_file(file_path: &str, lines: &Vec<String>) -> io::Result<()> {
+    let mut file = File::create(file_path)?;
+
+    lines.iter().try_for_each(|line|{
+        writeln!(file, "{}", line)
+    })?;
+
+    Ok(())
 }
 fn main() {
     // コマンドライン引数を取得する
@@ -31,9 +41,7 @@ fn main() {
 
     let edit_file_path = &args[1];
 
-    println!("edit_file_path: {}", edit_file_path);
-
-    let lines = match read_file(edit_file_path) {
+    let mut lines = match read_file(edit_file_path) {
         Ok(lines) => lines,
         Err(err) => {
             eprintln!("Error reading file: {}", err);
@@ -41,16 +49,32 @@ fn main() {
         }
     };
 
+    println!("edit_file_path: {}", edit_file_path);
     println!("Contents");
     lines.iter().enumerate().for_each(|(index, line)|{
         println!("{:02}|{}", index, line)
     });
 
-    let edit_line_number = match input("input edit line number>").trim().parse::<i32>() {
+    let edit_line_number = match input("input edit line number>").trim().parse::<usize>() {
         Ok(number) => number,
         Err(_) => {
             eprintln!("Invalid input for line number");
             std::process::exit(1);
         }        
     };
+
+    // インデックス1の要素を変更
+    if let Some(edit_string) = lines.get_mut(edit_line_number) {
+        *edit_string = input(&format!("line{:02}>", edit_line_number).to_string());
+    } else {
+        println!("line Index out of bounds");
+    }
+
+    match write_to_file(edit_file_path, &lines) {
+        Ok(()) => println!("Data has been written to {} successfully.", edit_file_path),
+        Err(err) => {
+            eprintln!("Error reading file: {}", err);
+            std::process::exit(1);
+        }
+    }
 }
